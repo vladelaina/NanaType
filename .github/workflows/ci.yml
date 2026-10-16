@@ -31,9 +31,9 @@ jobs:
         run: cargo clippy --workspace --all-targets --no-deps -- -D warnings
       - name: Test
         run: cargo test --workspace
-      # After the build, so every crate is in the local cache (the script
-      # runs cargo metadata --offline). Fails when a linked crate has no
-      # licence expression or THIRD_PARTY_NOTICES.md is out of date.
+      # Reuse downloaded dependencies; metadata fetches any missing sources
+      # without changing Cargo.lock. Fails when a linked crate has no licence
+      # expression or THIRD_PARTY_NOTICES.md is out of date.
       - name: Third-party notices
         if: runner.os == 'Windows'
         shell: pwsh

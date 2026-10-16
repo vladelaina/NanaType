@@ -1,6 +1,6 @@
 # Regenerate the generated part of THIRD_PARTY_NOTICES.md: every Rust crate
 # linked into the Windows build of nanatype.exe, grouped by licence, from
-# `cargo metadata --offline` (no network). Also refreshes
+# `cargo metadata --locked` (downloads missing dependencies as needed). Also refreshes
 # packaging/licenses/NotoSansSC-OFL.txt from the locked NanaUI checkout.
 #
 #   pwsh scripts/third-party-notices.ps1            # rewrite the files
@@ -21,7 +21,9 @@ $begin = "<!-- BEGIN generated: scripts/third-party-notices.ps1 -->"
 $end = "<!-- END generated -->"
 $target = "x86_64-pc-windows-msvc"
 
-$json = cargo metadata --format-version 1 --offline --filter-platform $target --manifest-path (Join-Path $root "Cargo.toml")
+# A normal build need not download every workspace/dev dependency that metadata
+# resolves. Allow missing sources to be fetched, while keeping Cargo.lock fixed.
+$json = cargo metadata --format-version 1 --locked --filter-platform $target --manifest-path (Join-Path $root "Cargo.toml")
 if ($LASTEXITCODE -ne 0) { throw "cargo metadata failed" }
 $meta = $json | ConvertFrom-Json -Depth 64
 $packages = @{}
