@@ -1,9 +1,10 @@
 # Build a release of NanaType and package it.
 #   pwsh scripts/package.ps1 [-Portable] [-SkipBuild]
 # Needs: nana-packager on PATH (cargo install --path <NanaUI>/crates/nana-packager),
-# Inno Setup 6 (iscc) for the installer. Code signing is done in CI.
+# Inno Setup 6 (iscc) for the installer. Packages are unsigned.
 param([switch]$Portable, [switch]$SkipBuild)
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
@@ -13,7 +14,7 @@ if (-not $SkipBuild) {
     $env:NANATYPE_REQUIRE_RESOURCES = "1"
     # Static C runtime: the package must not need the VC++ redistributable.
     $env:RUSTFLAGS = "-C target-feature=+crt-static"
-    cargo build --profile dist -p nanatype
+    cargo build --locked --profile dist -p nanatype
 }
 $exe = Join-Path $root "target\dist\nanatype.exe"
 

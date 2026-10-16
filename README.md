@@ -101,6 +101,12 @@ cargo run -p nanatype --example snapshots -- target/snapshots nanatype.night ja-
 pwsh scripts/package.ps1
 ```
 
+### 自动构建下载
+
+每次向任意分支推送提交后，GitHub Actions 的 **CI → Windows packages** 会自动构建 Windows x64 安装包和便携版；也可以在 Actions 页面通过 **Run workflow** 手动触发。
+
+下载方式：打开仓库的 **Actions → CI → 对应提交的运行记录 → Artifacts**，选择 `NanaType-Windows-x64-installer-<提交 SHA>`（安装包）或 `NanaType-Windows-x64-portable-<提交 SHA>`（便携版）。下载后解压外层 artifact 压缩包，即可取得安装程序或便携版 ZIP。产物保留 30 天，未进行代码签名；这些构建不会自动发布到 GitHub Releases。
+
 开发辅助环境变量（仅调试构建或显式设置时生效）：
 
 | 变量 | 作用 |

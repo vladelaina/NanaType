@@ -2,8 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -37,8 +40,63 @@ jobs:
         run: ./scripts/third-party-notices.ps1 -Check
 
   package:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: test
+    name: Windows packages
+    if: github.event_name != 'pull_request'
     runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      NANATYPE_BUILD_ID: ${{ github.sha }}
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
     steps:
-      - run: echo "Release packaging runs scripts/package.ps1 with signing secrets."
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.98"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-package
+          cache-directories: |
+            ~/.cargo/bin
+      - name: Install NanaUI packager
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          cargo install --git https://github.com/sena-nana/NanaUI --rev 8fca5bb6850e959608d371f7b0c01e285773f543 --locked nana-packager
+      - name: Prepare Inno Setup
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $inno = "${env:ProgramFiles(x86)}\Inno Setup 6"
+          if (-not (Test-Path "$inno\ISCC.exe")) {
+            choco install innosetup --yes --no-progress
+          }
+          if (-not (Test-Path "$inno\ISCC.exe")) {
+            throw "Inno Setup 6 compiler was not found"
+          }
+          # Simplified Chinese is an unofficial translation, absent from some installations.
+          if (-not (Test-Path "$inno\Languages\ChineseSimplified.isl")) {
+            Invoke-WebRequest -Uri https://raw.githubusercontent.com/jrsoftware/issrc/is-6_5_4/Files/Languages/Unofficial/ChineseSimplified.isl -OutFile "$inno\Languages\ChineseSimplified.isl"
+          }
+          $inno | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Build and package installer
+        run: ./scripts/package.ps1
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: NanaType-Windows-x64-installer-${{ github.sha }}
+          path: dist/NanaType-*-setup.exe
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+      # package.ps1 recreates dist, so upload the installer before packaging again.
+      - name: Package portable build
+        run: ./scripts/package.ps1 -Portable -SkipBuild
+      - name: Upload portable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: NanaType-Windows-x64-portable-${{ github.sha }}
+          path: dist/NanaType-*-portable.zip
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
