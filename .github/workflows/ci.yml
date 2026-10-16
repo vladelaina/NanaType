@@ -60,6 +60,7 @@ jobs:
           shared-key: windows-package
           cache-directories: |
             ~/.cargo/bin
+
       - name: Install NanaUI packager
         run: |
           $PSNativeCommandUseErrorActionPreference = $true
